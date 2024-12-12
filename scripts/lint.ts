@@ -1,32 +1,39 @@
-import execa from 'execa'
-import path from 'path'
-import chalk from 'chalk'
-import os from 'os'
-import arg from 'arg'
-import globby from 'globby'
 import staged from 'staged-git-files'
+import globby from 'globby'
+import chalk from 'chalk'
+import execa from 'execa'
 import pMap from 'p-map'
+import path from 'path'
+import arg from 'arg'
+import os from 'os'
 
-async function main() {
+async function main() 
+{
   const args = arg({
     '--staged': Boolean,
   })
 
-  if (args._.length === 1) {
+  if (args._.length === 1) 
+  {
     const result = await lintPackage(args._[0])
-    if (!result) {
+    if (!result) 
+    {
       process.exit(1)
     }
   }
 
   let packages = []
-  if (args['--staged']) {
+  if (args['--staged']) 
+  {
     packages = await getStagedPackages()
-  } else {
+  } 
+  else 
+  {
     packages = await getAllPackages()
   }
 
-  if (packages.length === 0) {
+  if (packages.length === 0) 
+  {
     console.log(
       chalk.blueBright('Nothing to lint ') + chalk.bold.greenBright(`✔️`),
     )
@@ -40,24 +47,11 @@ async function main() {
     },
   )
 
-  if (results.some((r) => !r)) {
+  if (results.some((r) => !r)) 
+  {
     process.exit(1)
   }
 }
-
-/**
- * Examples:
- * Lint all packages:
- * pnpm run lint
- *
- * Lint a specific package:
- * pnpm run lint <package-name>
- * pnpm run lint engine-core
- * pnpm run lint client
- *
- * Lint the staged files:
- * pnpm run lint --staged
- */
 
 main().catch((e) => {
   console.error(e)
@@ -87,7 +81,9 @@ async function lintPackage(
     })
     printPkg(chalk.bold.greenBright(`✔️`), pkg)
     return true
-  } catch (e) {
+  } 
+  catch (e) 
+  {
     console.log()
     printPkg(e.stdout, pkg)
     printPkg(e.stderr, pkg)
@@ -95,11 +91,13 @@ async function lintPackage(
   }
 }
 
-function prefixLine(color: string, pkg: string, line: string) {
+function prefixLine(color: string, pkg: string, line: string) 
+{
   return `${chalk.bold.underline[color](pkg)} ${line}`
 }
 
-function printPkg(msg: string, pkg: string) {
+function printPkg(msg: string, pkg: string) 
+{
   const color = getColor()
   console.log(
     msg
@@ -109,7 +107,8 @@ function printPkg(msg: string, pkg: string) {
   )
 }
 
-async function getStagedPackages(): Promise<string[]> {
+async function getStagedPackages(): Promise<string[]> 
+{
   const files: Array<{ filename: string; status: string }> = await staged()
   return Object.keys(
     files.reduce((acc, { filename }) => {
@@ -146,6 +145,7 @@ const colors = [
 
 let colorIndex = 0
 
-function getColor() {
+function getColor() 
+{
   return colors[colorIndex++ % colors.length]
 }
