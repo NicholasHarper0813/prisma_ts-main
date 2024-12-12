@@ -1,6 +1,5 @@
-import { unstable_getCacheForType, Wakeable } from 'react'
-// @ts-ignore
 import { PrismaClient as PrismaClientConstructor, dmmf } from '.prisma/client'
+import { unstable_getCacheForType, Wakeable } from 'react'
 
 enum STATUS {
   Pending,
@@ -10,11 +9,6 @@ enum STATUS {
 
 const { Pending, Resolved, Rejected } = STATUS
 
-type PendingRecord = {
-  status: STATUS.Pending
-  value: Wakeable
-}
-
 type ResolvedRecord = {
   status: STATUS.Resolved
   value: any
@@ -23,6 +17,11 @@ type ResolvedRecord = {
 type RejectedRecord = {
   status: STATUS.Rejected
   value: any
+}
+
+type PendingRecord = {
+  status: STATUS.Pending
+  value: Wakeable
 }
 
 type Record = PendingRecord | ResolvedRecord | RejectedRecord
@@ -51,15 +50,20 @@ function createRecordFromThenable(thenable): Record {
   return record
 }
 
-function readRecordValue(record) {
-  if (record.status === Resolved) {
+function readRecordValue(record) 
+{
+  if (record.status === Resolved) 
+  {
     return record.value
-  } else {
+  } 
+  else 
+  {
     throw record.value
   }
 }
 
-function lowercase(str) {
+function lowercase(str) 
+{
   return str.slice(0, 1).toLowerCase() + str.slice(1)
 }
 
@@ -71,21 +75,22 @@ const queryOperations = {
   count: true,
 }
 
-// @ts-ignore
 export function PrismaClient(this, options): PrismaClientConstructor {
   this.client = new PrismaClientConstructor(options)
-  // Unique function per instance because it's used for cache identity.
-  this.createRecordMap = function () {
+  this.createRecordMap = function () 
+  {
     return new Map()
   }
 
-  for (let i = 0; i < dmmf.mappings.modelOperations.length; i++) {
+  for (let i = 0; i < dmmf.mappings.modelOperations.length; i++) 
+  {
     const mapping = dmmf.mappings.modelOperations[i]
     const delegate = Object.create(null)
     const modelName = lowercase(mapping.model)
 
     const keys = Object.keys(this.client[modelName])
-    for (let i = 0; i < keys.length; i++) {
+    for (let i = 0; i < keys.length; i++) 
+    {
       const method = keys[i]
       delegate[method] = (query) => {
         if (!queryOperations[method]) {
@@ -98,11 +103,13 @@ Please use \`@prisma/client\` directly for that.`)
         const key = JSON.stringify(query)
 
         let record = innerMap.get(key)
-        if (!record) {
+        if (!record) 
+        {
           const thenable = this.client[modelName][method](query)
           record = createRecordFromThenable(thenable)
           innerMap.set(key, record)
-        } else if (record instanceof Map) {
+        } else if (record instanceof Map) 
+        {
           throw new Error(
             'This query has received fewer parameters than the last time ' +
               'the same query was used. Always pass the exact number of ' +
