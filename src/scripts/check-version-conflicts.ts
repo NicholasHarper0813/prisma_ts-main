@@ -1,10 +1,10 @@
 import globby from 'globby'
 import { promises as fs } from 'fs'
-import path from 'path'
-import chalk from 'chalk'
 import arg from 'arg'
 import pMap from 'p-map'
 import execa from 'execa'
+import path from 'path'
+import chalk from 'chalk'
 
 type PackageUser = {
   path: string
