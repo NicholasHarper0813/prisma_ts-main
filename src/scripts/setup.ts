@@ -11,14 +11,17 @@ import {
 } from './ci/publish'
 import fetch from 'node-fetch'
 
-function getCommitEnvVar(name: string): string {
+function getCommitEnvVar(name: string): string 
+{
   return `${name.toUpperCase().replace(/-/g, '_')}_COMMIT`
 }
 
-async function main() {
+async function main()
+{
   const buildOnly = process.argv[2] === '--build'
 
-  if (process.env.BUILDKITE_TAG && !process.env.RELEASE_PROMOTE_DEV) {
+  if (process.env.BUILDKITE_TAG && !process.env.RELEASE_PROMOTE_DEV)
+  {
     throw new Error(`When providing BUILDKITE_TAG, you also need to provide the env var RELEASE_PROMOTE_DEV, which
 has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
   }
@@ -27,23 +30,28 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
       `You provided RELEASE_PROMOTE_DEV without BUILDKITE_TAG, which doesn't make sense.`,
     )
   }
-  if (process.env.CI && !process.env.SKIP_GIT) {
+  if (process.env.CI && !process.env.SKIP_GIT) 
+  {
     await run('.', `git config --global user.email "prismabots@gmail.com"`)
     await run('.', `git config --global user.name "prisma-bot"`)
   }
-  if (process.env.RELEASE_PROMOTE_DEV) {
+  if (process.env.RELEASE_PROMOTE_DEV) 
+  {
     const versions = await getVersionHashes(process.env.RELEASE_PROMOTE_DEV)
-    // TODO: disable the dry run here
 
     await run(`.`, `git stash`)
     await run(`.`, `git checkout ${versions.prisma}`, true)
-  } else if (process.env.PATCH_BRANCH) {
+  }
+  else if (process.env.PATCH_BRANCH)
+  {
     await checkoutPatchBranches(process.env.PATCH_BRANCH)
     console.log(`Commit we're on:`)
     await execa.command('git rev-parse HEAD', {
       stdio: 'inherit',
     })
-  } else if (process.env.UPDATE_STUDIO) {
+  }
+  else if (process.env.UPDATE_STUDIO)
+  {
     await execa.command(`git stash`, {
       stdio: 'inherit',
     })
@@ -57,7 +65,8 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
   const publishOrder = getPublishOrder(packages)
 
   console.log(publishOrder)
-  if (!buildOnly) {
+  if (!buildOnly)
+  {
     console.debug(`Installing dependencies`)
 
     await run(
@@ -68,7 +77,8 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
 
   console.debug(`Building packages`)
 
-  for (const batch of publishOrder) {
+  for (const batch of publishOrder)
+  {
     await pMap(
       batch,
       async (pkgName) => {
@@ -76,14 +86,12 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
         const pkgDir = path.dirname(pkg.path)
         const runPromise = run(pkgDir, 'pnpm run build')
 
-        // we want to build all in build-only to see all errors at once
-        if (buildOnly) {
+        if (buildOnly) 
+        {
           runPromise.catch(console.error)
 
-          // for sqlite3 native bindings, they need a rebuild after an update
-          if (
-            ['@prisma/migrate', '@prisma/integration-tests'].includes(pkgName)
-          ) {
+          if (['@prisma/migrate', '@prisma/integration-tests'].includes(pkgName)) 
+          {
             run(pkgDir, 'pnpm rebuild')
           }
         }
@@ -94,23 +102,24 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
     )
   }
 
-  if (buildOnly) {
+  if (buildOnly) 
+  {
     return
   }
 
-  // this should not be necessary, it's an pnpm bug
-  // it doesn't execute postinstall correctly
-  for (const batch of publishOrder) {
-    for (const pkgName of batch) {
+  for (const batch of publishOrder) 
+  {
+    for (const pkgName of batch) 
+    {
       const pkg = packages[pkgName]
-      if (pkg.packageJson.scripts.postinstall) {
+      if (pkg.packageJson.scripts.postinstall) 
+      {
         const pkgDir = path.dirname(pkg.path)
         await run(pkgDir, 'pnpm run postinstall')
       }
     }
   }
 
-  // final install on top level
   await pRetry(
     async () => {
       await run('.', 'pnpm i --no-prefer-frozen-lockfile')
@@ -124,26 +133,33 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
   )
 }
 
-if (!module.parent) {
+if (!module.parent) 
+{
   main().catch((e) => {
     console.error(e)
     process.exit(1)
   })
 }
 
-export async function cloneOrPull(repo: string, dryRun = false) {
-  if (fs.existsSync(path.join(__dirname, '../', repo))) {
+export async function cloneOrPull(repo: string, dryRun = false) 
+{
+  if (fs.existsSync(path.join(__dirname, '../', repo)))
+  {
     return run(repo, `git pull origin master`, dryRun)
-  } else {
+  } 
+  else 
+  {
     await run('.', `git clone --depth=50 ${repoUrl(repo)}`, dryRun)
     const envVar = getCommitEnvVar(repo)
-    if (process.env[envVar]) {
+    if (process.env[envVar])
+    {
       await run(repo, `git checkout ${process.env[envVar]}`, dryRun)
     }
   }
 }
 
-function repoUrl(repo: string, org: string = 'prisma') {
+function repoUrl(repo: string, org: string = 'prisma') 
+{
   return `https://github.com/${org}/${repo}.git`
 }
 
@@ -153,19 +169,24 @@ export async function run(
   dry: boolean = false,
 ): Promise<execa.ExecaReturnValue<string>> {
   const args = [chalk.underline('./' + cwd).padEnd(20), chalk.bold(cmd)]
-  if (dry) {
+  if (dry) 
+  {
     args.push(chalk.dim('(dry)'))
   }
   console.debug(args.join(' '))
-  if (dry) {
+  if (dry) 
+  {
     return
   }
-  try {
+  try
+  {
     return await execa.command(cmd, {
       cwd,
       stdio: 'inherit',
     })
-  } catch (e) {
+  } 
+  catch (e) 
+  {
     throw new Error(
       chalk.bold.red(
         `Error running ${chalk.bold(cmd)} in ${chalk.underline(cwd)}:`,
@@ -174,20 +195,19 @@ export async function run(
   }
 }
 
-/**
- * Runs a command and returns the resulting stdout in a Promise.
- * @param cwd cwd for running the command
- * @param cmd command to run
- */
-async function runResult(cwd: string, cmd: string): Promise<string> {
-  try {
+async function runResult(cwd: string, cmd: string): Promise<string> 
+{
+  try
+  {
     const result = await execa.command(cmd, {
       cwd,
       stdio: 'pipe',
       shell: true,
     })
     return result.stdout
-  } catch (e) {
+  } 
+  catch (e) 
+  {
     throw new Error(
       chalk.red(
         `Error running ${chalk.bold(cmd)} in ${chalk.underline(cwd)}:`,
@@ -196,19 +216,15 @@ async function runResult(cwd: string, cmd: string): Promise<string> {
   }
 }
 
-async function checkoutPatchBranches(patchBranch: string) {
+async function checkoutPatchBranches(patchBranch: string) 
+{
   const repoPath = path.join(__dirname, '../../')
-  if (await branchExists(repoPath, patchBranch)) {
+  if (await branchExists(repoPath, patchBranch)) 
+  {
     await run(repoPath, `git checkout ${patchBranch}`)
-  } else {
-    // TODO enable
-    // const tag = getTagFromPatchBranch(patchBranch)
-    // console.log(
-    //   `Patch branch ${patchBranch} is getting checked out from tag ${tag}`,
-    // )
-    // await run(repoPath, `git checkout -b ${patchBranch} ${tag}`)
-
-    // TODO: For the current 2.1.1 patch we need this, as otherwise our updated publish script wouldn't be part of this
+  }
+  else 
+  {
     await run(repoPath, `git checkout -b ${patchBranch}`)
   }
 }
@@ -219,10 +235,12 @@ function getTagFromPatchBranch(patchBranch: string): string {
   return `${major}.${minor}.0`
 }
 
-async function branchExists(dir: string, branch: string): Promise<boolean> {
+async function branchExists(dir: string, branch: string): Promise<boolean> 
+{
   const output = await runResult(dir, `git branch --list ${branch}`)
   const exists = output.trim().length > 0
-  if (exists) {
+  if (exists) 
+  {
     console.log(`Branch exists: ${exists}`)
   }
   return exists
@@ -232,13 +250,15 @@ async function getVersionHashes(
   npmVersion: string,
 ): Promise<{ prisma: string }> {
   return fetch(`https://unpkg.com/prisma@${npmVersion}/package.json`, {
-    headers: {
+    headers:
+    {
       accept: 'application/json',
     },
   })
     .then((res) => res.json())
     .then((pkg) => {
-      return {
+      return 
+      {
         prisma: pkg.prisma.prismaCommit,
       }
     })
