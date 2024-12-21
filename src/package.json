@@ -4,10 +4,12 @@
   "main": "index.js",
   "private": true,
   "license": "MIT",
-  "engines": {
+  "engines": 
+  {
     "node": ">=12.2"
   },
-  "devDependencies": {
+  "devDependencies": 
+  {
     "@sindresorhus/slugify": "1.1.2",
     "@slack/webhook": "6.0.0",
     "@types/debug": "4.1.6",
@@ -31,7 +33,8 @@
     "ts-node": "10.1.0",
     "typescript": "4.3.5"
   },
-  "scripts": {
+  "scripts": 
+  {
     "preinstall": "node ../scripts/only-allow-pnpm.js pnpm",
     "setup": "ts-node scripts/setup.ts",
     "build": "ts-node scripts/setup.ts --build",
