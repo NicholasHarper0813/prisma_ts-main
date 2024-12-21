@@ -11,9 +11,11 @@ const usage = chalk`
 \t{dim pnpm bump-engines integration}
 `
 
-async function main() {
+async function main() 
+{
   let version = argv._[0]
-  if (!version) {
+  if (!version)
+  {
     console.error(`No Version Found\n${usage}`)
     console.log(chalk`Defaulting to {dim latest}`)
     version = 'latest'
@@ -28,12 +30,15 @@ main()
 
 async function run(cwd: string, cmd: string): Promise<void> {
   console.log(chalk.underline('./' + cwd).padEnd(20), chalk.bold(cmd))
-  try {
+  try 
+  {
     await execa.command(cmd, {
       cwd,
       stdio: 'inherit',
     })
-  } catch (e) {
+  } 
+  catch (e) 
+  {
     throw new Error(
       chalk.bold.red(
         `Error running ${chalk.bold(cmd)} in ${chalk.underline(cwd)}:`,
