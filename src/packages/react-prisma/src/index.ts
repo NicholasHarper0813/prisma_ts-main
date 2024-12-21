@@ -1,7 +1,8 @@
 import { PrismaClient as PrismaClientConstructor, dmmf } from '.prisma/client'
 import { unstable_getCacheForType, Wakeable } from 'react'
 
-enum STATUS {
+enum STATUS 
+{
   Pending,
   Resolved,
   Rejected,
@@ -9,31 +10,38 @@ enum STATUS {
 
 const { Pending, Resolved, Rejected } = STATUS
 
-type ResolvedRecord = {
+type ResolvedRecord = 
+{
   status: STATUS.Resolved
   value: any
 }
 
-type RejectedRecord = {
+type RejectedRecord = 
+{
   status: STATUS.Rejected
   value: any
 }
 
-type PendingRecord = {
+type PendingRecord =
+{
   status: STATUS.Pending
   value: Wakeable
 }
 
 type Record = PendingRecord | ResolvedRecord | RejectedRecord
 
-function createRecordFromThenable(thenable): Record {
-  const record: Record = {
+function createRecordFromThenable(thenable): Record 
+{
+  const record: Record = 
+  {
     status: Pending,
     value: thenable,
   }
   thenable.then(
-    (value) => {
-      if (record.status === Pending) {
+    (value) => 
+    {
+      if (record.status === Pending)
+      {
         const resolvedRecord: any = record
         resolvedRecord.status = Resolved
         resolvedRecord.value = value
@@ -98,7 +106,6 @@ export function PrismaClient(this, options): PrismaClientConstructor {
 Please use \`@prisma/client\` directly for that.`)
         }
         const outerMap = unstable_getCacheForType(this.createRecordMap)
-
         const innerMap = outerMap
         const key = JSON.stringify(query)
 
@@ -108,7 +115,8 @@ Please use \`@prisma/client\` directly for that.`)
           const thenable = this.client[modelName][method](query)
           record = createRecordFromThenable(thenable)
           innerMap.set(key, record)
-        } else if (record instanceof Map) 
+        } 
+        else if (record instanceof Map) 
         {
           throw new Error(
             'This query has received fewer parameters than the last time ' +
