@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const whichPMRuns = function () 
 {
   if (!process.env.npm_config_user_agent) 
