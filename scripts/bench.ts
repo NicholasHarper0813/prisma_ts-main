@@ -12,7 +12,8 @@ async function main()
 
 async function run(benchmarks: string[]) 
 {
-  for (const location of benchmarks) {
+  for (const location of benchmarks) 
+  {
     await execa.command(`yarn ts-node ${location}`, {
       cwd: path.join(__dirname, `..`),
       stdio: "inherit",
