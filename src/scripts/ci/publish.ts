@@ -1,10 +1,13 @@
-import slugify from '@sindresorhus/slugify'
 import { IncomingWebhook } from '@slack/webhook'
+import { promises as fs } from 'fs'
+import { promisify } from 'util'
+import { cloneOrPull } from '../setup'
+import { unique } from './unique'
+import slugify from '@sindresorhus/slugify'
 import arg from 'arg'
 import topo from 'batching-toposort'
 import chalk from 'chalk'
 import execa from 'execa'
-import { promises as fs } from 'fs'
 import globby from 'globby'
 import fetch from 'node-fetch'
 import pMap from 'p-map'
@@ -13,9 +16,6 @@ import pRetry from 'p-retry'
 import path from 'path'
 import redis from 'redis'
 import semver from 'semver'
-import { promisify } from 'util'
-import { cloneOrPull } from '../setup'
-import { unique } from './unique'
 
 export type Commit = {
   date: Date
@@ -25,11 +25,13 @@ export type Commit = {
   parentCommits: string[]
 }
 
-async function getLatestChanges(): Promise<string[]> {
+async function getLatestChanges(): Promise<string[]> 
+{
   return getChangesFromCommit(await getLatestCommit('.'))
 }
 
-async function getChangesFromCommit(commit: Commit): Promise<string[]> {
+async function getChangesFromCommit(commit: Commit): Promise<string[]>
+{
   const hashes = commit.isMergeCommit
     ? commit.parentCommits.join(' ')
     : commit.hash
@@ -37,20 +39,26 @@ async function getChangesFromCommit(commit: Commit): Promise<string[]> {
     commit.dir,
     `git diff-tree --no-commit-id --name-only -r ${hashes}`,
   )
-  if (changes.trim().length > 0) {
+  if (changes.trim().length > 0) 
+  {
     return changes.split('\n').map((change) => path.join(commit.dir, change))
-  } else {
+  } 
+  else 
+  {
     throw new Error(`No changes detected. This must not happen!`)
   }
 }
 
-async function getUnsavedChanges(dir: string): Promise<string | null> {
+async function getUnsavedChanges(dir: string): Promise<string | null>
+{
   const result = await runResult(dir, `git status --porcelain`)
   return result.trim() || null
 }
 
-async function getLatestCommit(dir: string): Promise<Commit> {
-  if (process.env.GITHUB_CONTEXT) {
+async function getLatestCommit(dir: string): Promise<Commit> 
+{
+  if (process.env.GITHUB_CONTEXT)
+  {
     const context = JSON.parse(process.env.GITHUB_CONTEXT)
     return context.sha
   }
@@ -60,7 +68,8 @@ async function getLatestCommit(dir: string): Promise<Commit> {
   )
   const [date, commit, ...parents] = result.split(' ')
 
-  return {
+  return 
+  {
     date: new Date(date),
     dir,
     hash: commit,
@@ -73,46 +82,54 @@ async function commitChanges(
   dir: string,
   message: string,
   dry = false,
-): Promise<void> {
+): Promise<void> 
+{
   await run(dir, `git commit -am "${message}"`, dry)
 }
 
-async function pull(dir: string, dry = false): Promise<void> {
+async function pull(dir: string, dry = false): Promise<void> 
+{
   const branch = await getBranch(dir)
-  if (process.env.BUILDKITE) {
-    if (!process.env.GITHUB_TOKEN) {
+  if (process.env.BUILDKITE)
+  {
+    if (!process.env.GITHUB_TOKEN)
+    {
       throw new Error(`Missing env var GITHUB_TOKEN`)
     }
   }
   await run(dir, `git pull origin ${branch} --no-edit`, dry)
 }
 
-async function push(dir: string, dry = false, branch?: string): Promise<void> {
+async function push(dir: string, dry = false, branch?: string): Promise<void> 
+{
   branch = branch ?? (await getBranch(dir))
-  if (process.env.BUILDKITE) {
-    if (!process.env.GITHUB_TOKEN) {
+  if (process.env.BUILDKITE) 
+  {
+    if (!process.env.GITHUB_TOKEN)
+    {
       throw new Error(`Missing env var GITHUB_TOKEN`)
     }
     await run(dir, `git push --quiet --set-upstream origin ${branch}`, dry)
-  } else {
+  } 
+  else 
+  {
     await run(dir, `git push origin ${branch}`, dry)
   }
 }
 
-/**
- * Runs a command and returns the resulting stdout in a Promise.
- * @param cwd cwd for running the command
- * @param cmd command to run
- */
-async function runResult(cwd: string, cmd: string): Promise<string> {
-  try {
+async function runResult(cwd: string, cmd: string): Promise<string>
+{
+  try 
+  {
     const result = await execa.command(cmd, {
       cwd,
       stdio: 'pipe',
       shell: true,
     })
     return result.stdout
-  } catch (e) {
+  } 
+  catch (e) 
+  {
     throw new Error(
       chalk.red(
         `Error running ${chalk.bold(cmd)} in ${chalk.underline(cwd)}:`,
@@ -121,29 +138,29 @@ async function runResult(cwd: string, cmd: string): Promise<string> {
   }
 }
 
-/**
- * Runs a command and pipes the stdout & stderr to the current process.
- * @param cwd cwd for running the command
- * @param cmd command to run
- */
 async function run(
   cwd: string,
   cmd: string,
   dry: boolean = false,
   hidden: boolean = false,
-): Promise<void> {
+): Promise<void> 
+{
   const args = [chalk.underline('./' + cwd).padEnd(20), chalk.bold(cmd)]
-  if (dry) {
+  if (dry) 
+  {
     args.push(chalk.dim('(dry)'))
   }
-  if (!hidden) {
+  if (!hidden) 
+  {
     console.log(...args)
   }
-  if (dry) {
+  if (dry) 
+  {
     return
   }
 
-  try {
+  try 
+  {
     await execa.command(cmd, {
       cwd,
       stdio: 'inherit',
@@ -153,7 +170,9 @@ async function run(
         PRISMA_SKIP_POSTINSTALL_GENERATE: 'true',
       },
     })
-  } catch (e) {
+  } 
+  catch (e) 
+  {
     throw new Error(
       chalk.red(
         `Error running ${chalk.bold(cmd)} in ${chalk.underline(cwd)}:`,
@@ -162,7 +181,8 @@ async function run(
   }
 }
 
-type RawPackage = {
+type RawPackage = 
+{
   path: string
   packageJson: any
 }
@@ -179,15 +199,18 @@ export async function getPackages(): Promise<RawPackages> {
     })),
   )
 
-  return packages.reduce<RawPackages>((acc, p) => {
-    if (p.packageJson.name) {
+  return packages.reduce<RawPackages>((acc, p) => 
+  {
+    if (p.packageJson.name) 
+    {
       acc[p.packageJson.name] = p
     }
     return acc
   }, {})
 }
 
-interface Package {
+interface Package 
+{
   name: string
   path: string
   version: string
@@ -198,18 +221,21 @@ interface Package {
   packageJson: any
 }
 
-interface PackageWithNewVersion extends Package {
+interface PackageWithNewVersion extends Package 
+{
   newVersion: string
 }
 
 type Packages = { [packageName: string]: Package }
 type PackagesWithNewVersions = { [packageName: string]: PackageWithNewVersion }
 
-export function getPackageDependencies(packages: RawPackages): Packages {
+export function getPackageDependencies(packages: RawPackages): Packages 
+{
   const packageCache = Object.entries(packages).reduce<Packages>(
     (acc, [name, pkg]) => {
       let usesDev = getPrismaDependencies(pkg.packageJson.devDependencies)
-      acc[name] = {
+      acc[name] = 
+      {
         version: pkg.packageJson.version,
         name,
         path: pkg.path,
@@ -224,18 +250,27 @@ export function getPackageDependencies(packages: RawPackages): Packages {
     {},
   )
 
-  for (const pkg of Object.values(packageCache)) {
-    for (const dependency of pkg.uses) {
-      if (packageCache[dependency]) {
+  for (const pkg of Object.values(packageCache)) 
+  {
+    for (const dependency of pkg.uses)
+    {
+      if (packageCache[dependency]) 
+      {
         packageCache[dependency].usedBy.push(pkg.name)
-      } else {
+      } 
+      else 
+      {
         console.info(`Skipping ${dependency} as it's not in this workspace`)
       }
     }
-    for (const devDependency of pkg.usesDev) {
-      if (packageCache[devDependency]) {
+    for (const devDependency of pkg.usesDev) 
+    {
+      if (packageCache[devDependency]) 
+      {
         packageCache[devDependency].usedByDev.push(pkg.name)
-      } else {
+      } 
+      else 
+      {
         console.info(`Skipping ${devDependency} as it's not in this workspace`)
       }
     }
@@ -247,7 +282,8 @@ export function getPackageDependencies(packages: RawPackages): Packages {
 function getPrismaDependencies(dependencies?: {
   [name: string]: string
 }): string[] {
-  if (!dependencies) {
+  if (!dependencies)
+  {
     return []
   }
   return Object.keys(dependencies).filter(
@@ -257,11 +293,13 @@ function getPrismaDependencies(dependencies?: {
 
 function getCircularDependencies(packages: Packages): string[][] {
   const circularDeps = []
-  for (const pkg of Object.values(packages)) {
+  for (const pkg of Object.values(packages)) 
+  {
     const uses = [...pkg.uses, ...pkg.usesDev]
     const usedBy = [...pkg.usedBy, ...pkg.usedByDev]
     const circles = intersection(uses, usedBy)
-    if (circles.length > 0) {
+    if (circles.length > 0)
+    {
       circularDeps.push(circles)
     }
   }
@@ -286,7 +324,8 @@ async function getNewPackageVersions(
   )
 }
 
-export function getPublishOrder(packages: Packages): string[][] {
+export function getPublishOrder(packages: Packages): string[][] 
+{
   const dag: { [pkg: string]: string[] } = Object.values(packages).reduce(
     (acc, curr) => {
       acc[curr.name] = [...curr.usedBy, ...curr.usedByDev]
@@ -298,27 +337,19 @@ export function getPublishOrder(packages: Packages): string[][] {
   return topo(dag)
 }
 
-function zeroOutPatch(version: string): string {
+function zeroOutPatch(version: string): string 
+{
   const parts = version.split('.')
   parts[parts.length - 1] = '0'
   return parts.join('.')
 }
 
-/**
- * Takes the max dev version + 1
- * For now supporting 2.Y.Z-dev.#
- * @param packages Local package definitions
- */
 async function getNewDevVersion(packages: Packages): Promise<string> {
   const before = Date.now()
   console.log('\nCalculating new dev version...')
-  // Why are we calling zeroOutPatch?
-  // Because here we're only interested in the 2.5.0 <- the next minor stable version
-  // If the current version would be 2.4.7, we would end up with 2.5.7
   const nextStable = zeroOutPatch(await getNextMinorStable())
 
   console.log(`getNewDevVersion: Next minor stable: ${nextStable}`)
-
   const versions = await getAllVersions(packages, 'dev', nextStable + '-dev')
   const maxDev = getMaxDevVersionIncrement(versions)
 
@@ -327,20 +358,12 @@ async function getNewDevVersion(packages: Packages): Promise<string> {
   return version
 }
 
-/**
- * Takes the max dev version + 1
- * For now supporting 2.Y.Z-dev.#
- * @param packages Local package definitions
- */
 async function getNewIntegrationVersion(
   packages: Packages,
   branch: string,
 ): Promise<string> {
   const before = Date.now()
   console.log('\nCalculating new dev version...')
-  // Why are we calling zeroOutPatch?
-  // Because here we're only interested in the 2.5.0 <- the next minor stable version
-  // If the current version would be 2.4.7, we would end up with 2.5.7
   const nextStable = zeroOutPatch(await getNextMinorStable())
 
   console.log(`getNewIntegrationVersion: Next minor stable: ${nextStable}`)
@@ -356,7 +379,6 @@ async function getNewIntegrationVersion(
     versionNameSlug,
   )
   const maxIntegration = getMaxIntegrationVersionIncrement(versions)
-
   const version = `${versionNameSlug}.${maxIntegration + 1}`
   console.log(`Got ${version} in ${Date.now() - before}ms`)
 
@@ -368,8 +390,8 @@ async function getCurrentPatchForMinor(minor: number): Promise<number> {
     await runResult('.', 'npm show @prisma/client@* version --json'),
   )
 
-  // inconsistent npm api
-  if (!Array.isArray(versions)) {
+  if (!Array.isArray(versions)) 
+  {
     versions = [versions]
   }
 
@@ -391,12 +413,13 @@ async function getCurrentPatchForMinor(minor: number): Promise<number> {
     })
     .filter((group) => group && group.minor === minor)
 
-  if (relevantVersions.length === 0) {
+  if (relevantVersions.length === 0) 
+  {
     return 0
   }
 
-  // sort descending by patch
-  relevantVersions.sort((a, b) => {
+  relevantVersions.sort((a, b) => 
+  {
     return a.patch < b.patch ? 1 : -1
   })
 
@@ -406,7 +429,8 @@ async function getCurrentPatchForMinor(minor: number): Promise<number> {
 async function getNewPatchDevVersion(
   packages: Packages,
   patchBranch: string,
-): Promise<string> {
+): Promise<string> 
+{
   const minor = getMinorFromPatchBranch(patchBranch)
   const currentPatch = await getCurrentPatchForMinor(minor)
   const newPatch = currentPatch + 1
@@ -423,7 +447,8 @@ function getMaxDevVersionIncrement(versions: string[]): number {
     .filter((v) => v.trim().length > 0)
     .map((v) => {
       const match = regex.exec(v)
-      if (match) {
+      if (match)
+      {
         return Number(match[1])
       }
       return null
@@ -432,13 +457,16 @@ function getMaxDevVersionIncrement(versions: string[]): number {
   return Math.max(...increments, 0)
 }
 
-function getMaxIntegrationVersionIncrement(versions: string[]): number {
+function getMaxIntegrationVersionIncrement(versions: string[]): number 
+{
   const regex = /2\.\d+\.\d+-integration.*\.(\d+)/
   const increments = versions
     .filter((v) => v.trim().length > 0)
-    .map((v) => {
+    .map((v) => 
+    {
       const match = regex.exec(v)
-      if (match) {
+      if (match)
+      {
         return Number(match[1])
       }
       return null
@@ -448,14 +476,15 @@ function getMaxIntegrationVersionIncrement(versions: string[]): number {
   return Math.max(...increments, 0)
 }
 
-// TODO: Adjust this for stable releases
-function getMaxPatchVersionIncrement(versions: string[]): number {
+function getMaxPatchVersionIncrement(versions: string[]): number 
+{
   const regex = /2\.\d+\.\d+-dev\.(\d+)/
   const increments = versions
     .filter((v) => v.trim().length > 0)
     .map((v) => {
       const match = regex.exec(v)
-      if (match && match[1]) {
+      if (match && match[1]) 
+      {
         return Number(match[1])
       }
       return null
@@ -469,19 +498,23 @@ async function getAllVersions(
   packages: Packages,
   channel: string,
   prefix: string,
-): Promise<string[]> {
+): Promise<string[]>
+{
   return unique(
     flatten(
       await pMap(
         Object.values(packages).filter(
           (p) => p.name !== '@prisma/integration-tests',
         ),
-        async (pkg) => {
-          if (pkg.name === '@prisma/integration-tests') {
+        async (pkg) => 
+        {
+          if (pkg.name === '@prisma/integration-tests') 
+          {
             return []
           }
           const pkgVersions = []
-          if (pkg.version.startsWith(prefix)) {
+          if (pkg.version.startsWith(prefix))
+          {
             pkgVersions.push(pkg.version)
           }
           const remoteVersionsString = await runResult(
@@ -490,13 +523,12 @@ async function getAllVersions(
           )
 
           const remoteVersions = JSON.parse(remoteVersionsString)
-
-          for (const remoteVersion of remoteVersions) {
-            if (
-              remoteVersion.includes(channel) &&
+          for (const remoteVersion of remoteVersions)
+          {
+            if ( remoteVersion.includes(channel) &&
               remoteVersion.startsWith(prefix) &&
-              !pkgVersions.includes(remoteVersion)
-            ) {
+              !pkgVersions.includes(remoteVersion))
+            {
               pkgVersions.push(remoteVersion)
             }
           }
@@ -514,19 +546,21 @@ async function getNextMinorStable(): Promise<string | null> {
   return increaseMinor(remoteVersion)
 }
 
-// TODO: Adjust this for stable release
-function getMinorFromPatchBranch(version: string): number | null {
+function getMinorFromPatchBranch(version: string): number | null 
+{
   const regex = /2\.(\d+)\.x/
   const match = regex.exec(version)
 
-  if (match) {
+  if (match) 
+  {
     return Number(match[1])
   }
 
   return null
 }
 
-async function publish() {
+async function publish() 
+{
   const args = arg({
     '--publish': Boolean,
     '--repo': String,
@@ -535,25 +569,24 @@ async function publish() {
     '--test': Boolean,
   })
 
-  if (
-    process.env.BUILDKITE &&
+  if (process.env.BUILDKITE &&
     process.env.PUBLISH_BUILD &&
-    !process.env.GITHUB_TOKEN
-  ) {
+    !process.env.GITHUB_TOKEN) 
+  {
     throw new Error(`Missing env var GITHUB_TOKEN`)
   }
 
-  if (process.env.DRY_RUN) {
-    console.log(
-      chalk.blue.bold(`\nThe DRY_RUN env var is set, so we'll do a dry run!\n`),
-    )
+  if (process.env.DRY_RUN) 
+  {
+    console.log(chalk.blue.bold(`\nThe DRY_RUN env var is set, so we'll do a dry run!\n`),)
     args['--dry-run'] = true
   }
 
   const dryRun = args['--dry-run']
-
-  if (args['--publish'] && process.env.BUILDKITE_TAG) {
-    if (args['--release']) {
+  if (args['--publish'] && process.env.BUILDKITE_TAG)
+  {
+    if (args['--release']) 
+    {
       throw new Error(
         `Can't provide env var BUILDKITE_TAG and --release at the same time`,
       )
@@ -565,18 +598,22 @@ async function publish() {
     args['--release'] = process.env.BUILDKITE_TAG
   }
 
-  if (process.env.BUILDKITE_TAG && !process.env.RELEASE_PROMOTE_DEV) {
+  if (process.env.BUILDKITE_TAG && !process.env.RELEASE_PROMOTE_DEV) 
+  {
     throw new Error(
       `When BUILDKITE_TAG is provided, RELEASE_PROMOTE_DEV also needs to be provided`,
     )
   }
 
-  if (!args['--test'] && !args['--publish'] && !dryRun) {
+  if (!args['--test'] && !args['--publish'] && !dryRun) 
+  {
     throw new Error('Please either provide --test or --publish or --dry-run')
   }
 
-  if (args['--release']) {
-    if (!semver.valid(args['--release'])) {
+  if (args['--release'])
+  {
+    if (!semver.valid(args['--release'])) 
+    {
       throw new Error(
         `New release version ${chalk.bold.underline(
           args['--release'],
@@ -584,10 +621,9 @@ async function publish() {
       )
     }
     const releaseRegex = /2\.\d{1,2}\.\d{1,2}/
-    if (
-      !args['--release'].startsWith('2.') ||
-      !releaseRegex.test(args['--release'])
-    ) {
+    if (!args['--release'].startsWith('2.') ||
+      !releaseRegex.test(args['--release'])) 
+    {
       throw new Error(
         `New release version ${chalk.bold.underline(
           args['--release'],
@@ -597,30 +633,31 @@ async function publish() {
       )
     }
 
-    // If there is --release, it's always also --publish
     args['--publish'] = true
   }
 
   let unlock: undefined | (() => void)
-  if (process.env.BUILDKITE && args['--publish']) {
-    console.log(
-      `We're in buildkite and will publish, so we will acquire a lock...`,
-    )
+  if (process.env.BUILDKITE && args['--publish']) 
+  {
+    console.log(`We're in buildkite and will publish, so we will acquire a lock...`)
     const before = Date.now()
     unlock = await acquireLock()
     const after = Date.now()
     console.log(`Acquired lock after ${after - before}ms`)
   }
 
-  try {
+  try 
+  {
     const rawPackages = await getPackages()
     const packages = getPackageDependencies(rawPackages)
     const circles = getCircularDependencies(packages)
-    if (circles.length > 0) {
+    if (circles.length > 0)
+    {
       throw new Error(`Oops, there are circular dependencies: ${circles}`)
     }
 
-    if (!process.env.GITHUB_CONTEXT) {
+    if (!process.env.GITHUB_CONTEXT) 
+    {
       const changes = await getLatestChanges()
 
       console.log(chalk.bold(`Changed files:`))
@@ -632,43 +669,48 @@ async function publish() {
     let tagForE2ECheck: undefined | string
     const patchBranch = getPatchBranch()
     const branch = await getPrismaBranch()
-    if (branch.startsWith('integration/')) {
+    if (branch.startsWith('integration/')) 
+    {
       prisma2Version = await getNewIntegrationVersion(packages, branch)
       tag = 'integration'
-    } else if (patchBranch) {
+    } 
+    else if (patchBranch)
+    {
       prisma2Version = await getNewPatchDevVersion(packages, patchBranch)
       tag = 'patch-dev'
-      if (args['--release']) {
-        tagForE2ECheck = 'patch-dev' //?
+      if (args['--release']) 
+      {
+        tagForE2ECheck = 'patch-dev'
         prisma2Version = args['--release']
         tag = 'latest'
       }
-    } else if (args['--release']) {
+    } 
+    else if (args['--release']) 
+    {
       prisma2Version = args['--release']
       tag = 'latest'
       tagForE2ECheck = 'dev'
-    } else {
+    } 
+    else 
+    {
       prisma2Version = await getNewDevVersion(packages)
       tag = 'dev'
     }
 
     console.log({ patchBranch, tag, tagForE2ECheck, prisma2Version })
-
     const packagesWithVersions = await getNewPackageVersions(
       packages,
       prisma2Version,
     )
 
-    if (process.env.UPDATE_STUDIO) {
+    if (process.env.UPDATE_STUDIO) 
+    {
       console.log(
         chalk.bold(
           `UPDATE_STUDIO is set, so we only update Prisma Client and all dependants.`,
         ),
       )
-
-      // We know, that Prisma Client and Prisma CLI are always part of the release.
-      // Therefore, also Migrate is also always part of the release, as it depends on Prisma Client.
-      // We can therefore safely update Studio, as migrate and Prisma CLI are depending on Studio
+      
       const latestStudioVersion = await runResult(
         '.',
         'npm info @prisma/studio-server version',
@@ -676,6 +718,7 @@ async function publish() {
       console.log(
         `UPDATE_STUDIO set true, so we're updating it to ${latestStudioVersion}`,
       )
+      
       console.log(`Active branch`)
       await run('.', 'git branch')
       console.log(`Let's check out master!`)
@@ -686,18 +729,23 @@ async function publish() {
       )
     }
 
-    if (!dryRun && args['--test']) {
+    if (!dryRun && args['--test']) 
+    {
       console.log(chalk.bold('\nTesting packages'))
       await testPackages(packages, getPublishOrder(packages))
     }
 
-    if (args['--publish'] || dryRun) {
-      if (args['--release']) {
-        if (!tagForE2ECheck) {
+    if (args['--publish'] || dryRun)
+    {
+      if (args['--release'])
+      {
+        if (!tagForE2ECheck) 
+        {
           throw new Error(`tagForE2ECheck missing`)
         }
         const passing = await areEndToEndTestsPassing(tagForE2ECheck)
-        if (!passing && !process.env.SKIP_E2E_CHECK) {
+        if (!passing && !process.env.SKIP_E2E_CHECK) 
+        {
           throw new Error(`We can't release, as the e2e tests are not passing for the ${tag} npm tag!
 Check them out at https://github.com/prisma/e2e-tests/actions?query=workflow%3Atest+branch%3A${tag}`)
         }
@@ -707,7 +755,8 @@ Check them out at https://github.com/prisma/e2e-tests/actions?query=workflow%3At
         '@prisma/integration-tests',
       ])
 
-      if (!dryRun) {
+      if (!dryRun)
+      {
         console.log(`Let's first do a dry run!`)
         await publishPackages(
           packages,
@@ -742,42 +791,55 @@ Check them out at https://github.com/prisma/e2e-tests/actions?query=workflow%3At
       const prismaCommit = await getLatestCommit('.')
       const prismaCommitInfo = await getCommitInfo('prisma', prismaCommit.hash)
 
-      try {
+      try 
+      {
         await sendSlackMessage({
           version: prisma2Version,
           enginesCommit: enginesCommitInfo,
           prismaCommit: prismaCommitInfo,
         })
-      } catch (e) {
+      } 
+      catch (e) 
+      {
         console.error(e)
       }
 
-      if (!process.env.PATCH_BRANCH && !args['--dry-run']) {
-        try {
+      if (!process.env.PATCH_BRANCH && !args['--dry-run']) 
+      {
+        try
+        {
           await tagEnginesRepo(prisma2Version, enginesCommit, dryRun)
-        } catch (e) {
+        } 
+        catch (e) 
+        {
           console.error(e)
         }
       }
     }
-  } catch (e) {
-    if (unlock) {
+  } 
+  catch (e)
+  {
+    if (unlock) 
+    {
       unlock()
       unlock = undefined
     }
     throw e
-  } finally {
-    if (unlock) {
+  } 
+  finally 
+  {
+    if (unlock) 
+    {
       unlock()
       unlock = undefined
     }
   }
 }
 
-async function getEnginesCommit(): Promise<string> {
+async function getEnginesCommit(): Promise<string> 
+{
   const prisma2Path = path.resolve(process.cwd(), './packages/cli/package.json')
   const pkg = JSON.parse(await fs.readFile(prisma2Path, 'utf-8'))
-  // const engineVersion = pkg.prisma.version
   const engineVersion = pkg.dependencies['@prisma/engines']
     ?.split('.')
     .slice(-1)[0]
@@ -788,23 +850,21 @@ async function getEnginesCommit(): Promise<string> {
 async function tagEnginesRepo(
   prismaVersion: string,
   engineVersion: string,
-  dryRun = false,
-) {
+  dryRun = false)
+{
   console.log(`Going to tag the engines repo dryRun: ${dryRun}`)
-  /** Get ready */
   await cloneOrPull('prisma-engines', dryRun)
 
-  /** Get previous tag */
   const previousTag = await runResult(
     'prisma-engines',
     `git describe --tags --abbrev=0`,
   )
 
-  /** Get commits between previous tag and engines sha1 */
   const changelog = await runResult(
     'prisma-engines',
     `git log ${previousTag}..${engineVersion} --pretty=format:' * %h - %s - by %an' --`,
   )
+  
   const changelogSanitized = changelog
     .replace(/"/gm, '\\"')
     .replace(/`/gm, '\\`')
@@ -813,10 +873,11 @@ async function tagEnginesRepo(
     ? []
     : (await runResult('prisma-engines', `git remote`)).trim().split('\n')
 
-  if (!remotes.includes('origin-push')) {
+  if (!remotes.includes('origin-push'))
+  {
     await run(
       'prisma-engines',
-      `git remote add origin-push https://${process.env.GITHUB_TOKEN}@github.com/prisma/prisma-engines.git`,
+      `git remote add origin-push https:
       dryRun,
       true,
     )
@@ -827,45 +888,39 @@ async function tagEnginesRepo(
     dryRun,
   )
   await run('.', `git config --global user.name "prisma-bot"`, dryRun)
-
-  /** Tag */
   await run(
     'prisma-engines',
     `git tag -a ${prismaVersion} ${engineVersion} -m "${prismaVersion}" -m "${engineVersion}" -m "${changelogSanitized}"`,
     dryRun,
   )
-
-  /** Push */
   await run(`prisma-engines`, `git push origin-push ${prismaVersion}`, dryRun)
 }
 
-/**
- * Tests packages in "publishOrder"
- * @param packages Packages
- * @param publishOrder string[][]
- */
 async function testPackages(
   packages: Packages,
   publishOrder: string[][],
-): Promise<void> {
+): Promise<void> 
+{
   let order = flatten(publishOrder)
 
-  // If paralelism is set in builkite we split the testing
-  // Job 0 all but client
-  // Job 1 only client
-  if (process.env.BUILDKITE_PARALLEL_JOB === '0') {
+  if (process.env.BUILDKITE_PARALLEL_JOB === '0') 
+  {
     console.log(
       'BUILDKITE_PARALLEL_JOB === 0 - running all tests excluding client',
     )
     const index = order.indexOf('@prisma/client')
-    if (index > -1) {
+    if (index > -1) 
+    {
       order.splice(index, 1)
     }
-  } else if (process.env.BUILDKITE_PARALLEL_JOB === '1') {
+  }
+  else if (process.env.BUILDKITE_PARALLEL_JOB === '1') 
+  {
     console.log('BUILDKITE_PARALLEL_JOB === 1 - running client only')
     order = ['@prisma/client']
-  } else if (process.env.BUILDKITE_PARALLEL_JOB === '2') {
-    // This is to test Node-API
+  }
+  else if (process.env.BUILDKITE_PARALLEL_JOB === '2')
+  {
     console.log(
       'BUILDKITE_PARALLEL_JOB === 2 - running Node API tests for [sdk, migrate, client, cli, integration-tests]',
     )
@@ -881,19 +936,26 @@ async function testPackages(
   console.log(chalk.bold(`\nRun ${chalk.cyanBright('tests')}. Testing order:`))
   console.log(order)
 
-  for (const pkgName of order) {
+  for (const pkgName of order) 
+  {
     const pkg = packages[pkgName]
-    if (pkg.packageJson.scripts.test) {
+    if (pkg.packageJson.scripts.test) 
+    {
       console.log(`\nTesting ${chalk.magentaBright(pkg.name)}`)
-      if (process.env.BUILDKITE_PARALLEL_JOB === '2') {
+      if (process.env.BUILDKITE_PARALLEL_JOB === '2') 
+      {
         await run(
           path.dirname(pkg.path),
           'PRISMA_FORCE_NAPI=true pnpm run test',
         )
-      } else {
+      }
+      else 
+      {
         await run(path.dirname(pkg.path), 'pnpm run test')
       }
-    } else {
+    } 
+    else 
+    {
       console.log(
         `\nSkipping ${chalk.magentaBright(pkg.name)}, as it doesn't have tests`,
       )
@@ -901,16 +963,18 @@ async function testPackages(
   }
 }
 
-function flatten<T>(arr: T[][]): T[] {
+function flatten<T>(arr: T[][]): T[]
+{
   return arr.reduce((acc, val) => acc.concat(val), [])
 }
 
-function intersection<T>(arr1: T[], arr2: T[]): T[] {
+function intersection<T>(arr1: T[], arr2: T[]): T[] 
+{
   return arr1.filter((value) => arr2.includes(value))
 }
 
-// Parent "version updating function", uses `patch` and `patchVersion`
-async function newVersion(pkg: Package, prisma2Version: string) {
+async function newVersion(pkg: Package, prisma2Version: string) 
+{
   const isPrisma2OrPhoton = [
     '@prisma/cli',
     'prisma',
@@ -922,11 +986,11 @@ async function newVersion(pkg: Package, prisma2Version: string) {
 const semverRegex =
   /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
 
-function patchVersion(version: string): string | null {
-  // Thanks 🙏 to https://github.com/semver/semver/issues/232#issuecomment-405596809
-
+function patchVersion(version: string): string | null
+{
   const match = semverRegex.exec(version)
-  if (match) {
+  if (match) 
+  {
     return `${match.groups.major}.${match.groups.minor}.${
       Number(match.groups.patch) + 1
     }`
@@ -935,9 +999,11 @@ function patchVersion(version: string): string | null {
   return null
 }
 
-function increaseMinor(version: string): string | null {
+function increaseMinor(version: string): string | null 
+{
   const match = semverRegex.exec(version)
-  if (match) {
+  if (match) 
+  {
     return `${match.groups.major}.${Number(match.groups.minor) + 1}.${
       match.groups.patch
     }`
@@ -946,20 +1012,20 @@ function increaseMinor(version: string): string | null {
   return null
 }
 
-async function patch(pkg: Package): Promise<string> {
-  // if done locally, no need to get the latest version from npm (saves time)
-  // if done in buildkite, we definitely want to check, if there's a newer version on npm
-  // in buildkite, saving a few sec is not worth it
-  if (!process.env.BUILDKITE) {
+async function patch(pkg: Package): Promise<string> 
+{
+  if (!process.env.BUILDKITE) 
+  {
     return patchVersion(pkg.version)
   }
 
   const localVersion = pkg.version
-  if (pkg.name === '@prisma/integration-tests') {
+  if (pkg.name === '@prisma/integration-tests') 
+  {
     return localVersion
   }
+  
   const npmVersion = await runResult('.', `npm info ${pkg.name} version`)
-
   const maxVersion = semver.maxSatisfying([localVersion, npmVersion], '*', {
     loose: true,
     includePrerelease: true,
@@ -971,14 +1037,19 @@ async function patch(pkg: Package): Promise<string> {
 function filterPublishOrder(
   publishOrder: string[][],
   packages: string[],
-): string[][] {
+): string[][] 
+{
   return publishOrder.reduce<string[][]>((acc, curr) => {
-    if (Array.isArray(curr)) {
+    if (Array.isArray(curr)) 
+    {
       curr = curr.filter((pkg) => !packages.includes(pkg))
-      if (curr.length > 0) {
+      if (curr.length > 0) 
+      {
         acc.push(curr)
       }
-    } else if (!packages.includes(curr)) {
+    } 
+    else if (!packages.includes(curr)) 
+    {
       acc.push(curr)
     }
 
@@ -995,17 +1066,16 @@ async function publishPackages(
   tag: string,
   releaseVersion?: string,
   patchBranch?: string,
-): Promise<void> {
-  // we need to release a new `prisma` CLI in all cases.
-  // if there is a change in prisma-client-js, it will also use this new version
-
-  const publishStr = dryRun
+): Promise<void> 
+{
+    const publishStr = dryRun
     ? `${chalk.bold('Dry publish')} `
     : releaseVersion
     ? 'Releasing '
     : 'Publishing '
 
-  if (releaseVersion) {
+  if (releaseVersion) 
+  {
     console.log(
       chalk.red.bold(
         `RELEASE. This will release ${chalk.underline(
@@ -1013,7 +1083,8 @@ async function publishPackages(
         )} on latest!!!`,
       ),
     )
-    if (dryRun) {
+    if (dryRun) 
+    {
       console.log(chalk.red.bold(`But it's only a dry run, so don't worry.`))
     }
   }
@@ -1033,7 +1104,8 @@ async function publishPackages(
     ),
   )
 
-  if (releaseVersion) {
+  if (releaseVersion) 
+  {
     console.log(
       chalk.red.bold(
         `\nThis will ${chalk.underline(
@@ -1043,7 +1115,8 @@ async function publishPackages(
         )}`,
       ),
     )
-    if (!dryRun) {
+    if (!dryRun) 
+    {
       console.log(
         chalk.red(
           'Are you absolutely sure you want to do this? We wait for 10secs just in case...',
@@ -1053,37 +1126,40 @@ async function publishPackages(
         setTimeout(r, 10000)
       })
     }
-  } else if (!dryRun) {
+  } 
+  else if (!dryRun) 
+  {
     console.log(`\nGiving you 5sec to review the changes...`)
     await new Promise((r) => {
       setTimeout(r, 5000)
     })
   }
 
-  for (const currentBatch of publishOrder) {
-    for (const pkgName of currentBatch) {
+  for (const currentBatch of publishOrder) 
+  {
+    for (const pkgName of currentBatch) 
+    {
       const pkg = packages[pkgName]
 
-      if (pkg.name === '@prisma/integration-tests') {
+      if (pkg.name === '@prisma/integration-tests') 
+      {
         continue
       }
-
-      // @prisma/engines & @prisma/engines-version are published outside of this script
       const packagesNotToPublish = [
         '@prisma/engines',
         '@prisma/engines-version',
       ]
-      if (packagesNotToPublish.includes(pkgName)) {
+      if (packagesNotToPublish.includes(pkgName)) 
+      {
         continue
       }
 
       const pkgDir = path.dirname(pkg.path)
 
       let newVersion = prisma2Version
-      if (
-        pkgName === '@prisma/engine-core' &&
-        process.env.BUILDKITE_TAG === '2.0.1'
-      ) {
+      if ( pkgName === '@prisma/engine-core' &&
+        process.env.BUILDKITE_TAG === '2.0.1') 
+      {
         newVersion = '2.0.1-1'
       }
 
@@ -1094,7 +1170,8 @@ async function publishPackages(
       )
 
       const prismaDeps = [...pkg.uses, ...pkg.usesDev]
-      if (prismaDeps.length > 0) {
+      if (prismaDeps.length > 0) 
+      {
         await pRetry(
           async () => {
             await run(
@@ -1114,14 +1191,16 @@ async function publishPackages(
 
       await writeVersion(pkgDir, newVersion, dryRun)
 
-      if (pkgName === 'prisma') {
+      if (pkgName === 'prisma') 
+      {
         const latestCommit = await getLatestCommit('.')
         await writeToPkgJson(pkgDir, (pkg) => {
           pkg.prisma.prismaCommit = latestCommit.hash
         })
       }
 
-      if (process.env.BUILDKITE) {
+      if (process.env.BUILDKITE) 
+      {
         await run(pkgDir, `pnpm run build`, dryRun)
       }
       const skipPackages =
@@ -1132,14 +1211,17 @@ async function publishPackages(
               '@prisma/ink-components',
             ]
           : []
-      if (!skipPackages.includes(pkgName)) {
+      if (!skipPackages.includes(pkgName)) 
+      {
         await run(pkgDir, `pnpm publish --no-git-checks --tag ${tag}`, dryRun)
       }
     }
   }
 
-  if (process.env.UPDATE_STUDIO || process.env.PATCH_BRANCH) {
-    if (process.env.CI) {
+  if (process.env.UPDATE_STUDIO || process.env.PATCH_BRANCH) 
+  {
+    if (process.env.CI) 
+    {
       await run('.', `git config --global user.email "prismabots@gmail.com"`)
       await run('.', `git config --global user.name "prisma-bot"`)
     }
@@ -1151,39 +1233,43 @@ async function publishPackages(
     )
   }
 
-  if (process.env.UPDATE_STUDIO) {
+  if (process.env.UPDATE_STUDIO) 
+  {
     await run('.', `git stash`, dryRun)
     await run('.', `git checkout master`, dryRun)
     await run('.', `git stash pop`, dryRun)
   }
 
-  // for now only push when studio is being updated
-  if (
-    !process.env.BUILDKITE ||
+  if (!process.env.BUILDKITE ||
     process.env.UPDATE_STUDIO ||
-    process.env.PATCH_BRANCH
-  ) {
+    process.env.PATCH_BRANCH) 
+  {
     const repo = path.join(__dirname, '../../../')
-    // commit and push it :)
-    // we try catch this, as this is not necessary for CI to succeed
     await run(repo, `git status`, dryRun)
     await pull(repo, dryRun).catch((e) => {
-      if (process.env.PATCH_BRANCH) {
+      if (process.env.PATCH_BRANCH) 
+      {
         console.error(e)
-      } else {
+      } 
+      else 
+      {
         throw e
       }
     })
 
-    try {
+    try 
+    {
       const unsavedChanges = await getUnsavedChanges(repo)
-      if (!unsavedChanges) {
+      if (!unsavedChanges) 
+      {
         console.log(
           `\n${chalk.bold(
             'Skipping',
           )} commiting changes, as they're already commited`,
         )
-      } else {
+      } 
+      else 
+      {
         console.log(`\nCommiting changes`)
         const message = process.env.UPDATE_STUDIO
           ? 'Bump Studio'
@@ -1192,16 +1278,20 @@ async function publishPackages(
       }
       const branch = process.env.PATCH_BRANCH
       await push(repo, dryRun, branch).catch(console.error)
-    } catch (e) {
+    } 
+    catch (e) 
+    {
       console.error(e)
       console.error(`Ignoring this error, continuing`)
     }
   }
 }
 
-async function acquireLock(): Promise<() => void> {
+async function acquireLock(): Promise<() => void> 
+{
   const before = Date.now()
-  if (!process.env.REDIS_URL) {
+  if (!process.env.REDIS_URL) 
+  {
     console.log(chalk.bold.red(`REDIS_URL missing. Setting dummy lock`))
     return () => {
       console.log(`Lock removed after ${Date.now() - before}ms`)
@@ -1214,8 +1304,6 @@ async function acquireLock(): Promise<() => void> {
     },
   })
   const lock = promisify(require('redis-lock')(client))
-
-  // get a lock of max 15 min
   const cb = await lock('prisma2-build', 15 * 60 * 1000)
   return async () => {
     cb()
@@ -1225,67 +1313,89 @@ async function acquireLock(): Promise<() => void> {
   }
 }
 
-async function writeToPkgJson(pkgDir, cb: (pkg: any) => any, dryRun?: boolean) {
+async function writeToPkgJson(pkgDir, cb: (pkg: any) => any, dryRun?: boolean) 
+{
   const pkgJsonPath = path.join(pkgDir, 'package.json')
   const file = await fs.readFile(pkgJsonPath, 'utf-8')
   let packageJson = JSON.parse(file)
-  if (dryRun) {
+  if (dryRun) 
+  {
     console.log(`Would write to ${pkgJsonPath} from ${packageJson.version} now`)
-  } else {
+  } 
+  else 
+  {
     const result = cb(packageJson)
-    if (result) {
+    if (result) 
+    {
       packageJson = result
     }
     await fs.writeFile(pkgJsonPath, JSON.stringify(packageJson, null, 2))
   }
 }
 
-async function writeVersion(pkgDir: string, version: string, dryRun?: boolean) {
+async function writeVersion(pkgDir: string, version: string, dryRun?: boolean) 
+{
   const pkgJsonPath = path.join(pkgDir, 'package.json')
   const file = await fs.readFile(pkgJsonPath, 'utf-8')
   const packageJson = JSON.parse(file)
-  if (dryRun) {
+  if (dryRun) 
+  {
     console.log(
       `Would update ${pkgJsonPath} from ${
         packageJson.version
       } to ${version} now ${chalk.dim('(dry)')}`,
     )
-  } else {
+  }
+  else 
+  {
     packageJson.version = version
     await fs.writeFile(pkgJsonPath, JSON.stringify(packageJson, null, 2))
   }
 }
 
-if (!module.parent) {
+if (!module.parent) 
+{
   publish().catch((e) => {
     console.error(chalk.red.bold('Error: ') + (e.stack || e.message))
     process.exit(1)
   })
 }
 
-async function getBranch(dir: string) {
+async function getBranch(dir: string) 
+{
   return runResult(dir, 'git rev-parse --symbolic-full-name --abbrev-ref HEAD')
 }
 
-async function getPrismaBranch(): Promise<string | undefined> {
-  if (process.env.BUILDKITE_BRANCH) {
+async function getPrismaBranch(): Promise<string | undefined> 
+{
+  if (process.env.BUILDKITE_BRANCH) 
+  {
     return process.env.BUILDKITE_BRANCH
   }
-  try {
+  try 
+  {
     return await runResult(
       '.',
       'git rev-parse --symbolic-full-name --abbrev-ref HEAD',
     )
-  } catch (e) {}
+  }
+  catch (e) 
+  {
+    
+  }
 }
 
-async function areEndToEndTestsPassing(tag: string): Promise<boolean> {
+async function areEndToEndTestsPassing(tag: string): Promise<boolean> 
+{
   let svgUrl =
     'https://github.com/prisma/e2e-tests/workflows/test/badge.svg?branch='
 
-  if (tag === 'patch-dev') {
+  if (tag === 'patch-dev') 
+  {
     svgUrl += tag
-  } else {
+  }
+  else 
+  {
     svgUrl += 'dev'
   }
 
@@ -1293,14 +1403,18 @@ async function areEndToEndTestsPassing(tag: string): Promise<boolean> {
   return res.includes('passing')
 }
 
-function getPatchBranch(): string | null {
-  if (process.env.PATCH_BRANCH) {
+function getPatchBranch(): string | null 
+{
+  if (process.env.PATCH_BRANCH) 
+  {
     return process.env.PATCH_BRANCH
   }
 
-  if (process.env.BUILDKITE_BRANCH) {
+  if (process.env.BUILDKITE_BRANCH) 
+  {
     const minor = getMinorFromPatchBranch(process.env.BUILDKITE_BRANCH)
-    if (minor !== null) {
+    if (minor !== null) 
+    {
       return process.env.BUILDKITE_BRANCH
     }
   }
@@ -1308,7 +1422,8 @@ function getPatchBranch(): string | null {
   return null
 }
 
-type CommitInfo = {
+type CommitInfo = 
+{
   hash: string
   message: string
   author: string
@@ -1326,7 +1441,8 @@ async function sendSlackMessage({
   enginesCommit,
   prismaCommit,
   dryRun,
-}: SlackMessageArgs) {
+}: SlackMessageArgs) 
+{
   const webhook = new IncomingWebhook(process.env.SLACK_RELEASE_FEED_WEBHOOK)
   const dryRunStr = dryRun ? 'DRYRUN: ' : ''
   const prismaLines = getLines(prismaCommit.message)
@@ -1352,18 +1468,21 @@ ${enginesLines.slice(1).join('\n')}${
   )
 }
 
-function getLines(str: string): string[] {
+function getLines(str: string): string[] 
+{
   return str.split(/\r?\n|\r/)
 }
 
-async function getCommitInfo(repo: string, hash: string): Promise<CommitInfo> {
+async function getCommitInfo(repo: string, hash: string): Promise<CommitInfo> 
+{
   const response = await fetch(
     `https://api.github.com/repos/prisma/${repo}/commits/${hash}`,
   )
 
   const jsonData = await response.json()
 
-  return {
+  return 
+  {
     message: jsonData.commit?.message || '',
     author: jsonData.commit?.author.name || '',
     hash,
