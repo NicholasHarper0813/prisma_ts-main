@@ -1,10 +1,10 @@
 import globby from 'globby'
-import { promises as fs } from 'fs'
 import arg from 'arg'
 import pMap from 'p-map'
 import execa from 'execa'
 import path from 'path'
 import chalk from 'chalk'
+import { promises as fs } from 'fs'
 
 type PackageUser = {
   path: string
@@ -14,7 +14,8 @@ type PackageUser = {
 
 const tab = '  '
 
-async function main() {
+async function main() 
+{
   const packagePaths = await globby(
     [
       'migrate/package.json',
@@ -34,25 +35,32 @@ async function main() {
 
   const packageCache: { [key: string]: PackageUser[] } = {}
 
-  for (const p of packages) {
+  for (const p of packages) 
+  {
     const handler = dev => ([name, version]: any) => {
       const v = version.replace('^', '')
-      if (packageCache[name]) {
-        if (packageCache[name].find(c => c.version !== v)) {
+      if (packageCache[name])
+      {
+        if (packageCache[name].find(c => c.version !== v))
+        {
           packageCache[name].push({
             path: p.path,
             version: v,
             dev,
           })
         }
-      } else {
+      } 
+      else 
+      {
         packageCache[name] = [{ path: p.path, version: v, dev }]
       }
     }
-    if (p.package.dependencies) {
+    if (p.package.dependencies)
+    {
       Object.entries(p.package.dependencies).forEach(handler(false))
     }
-    if (p.package.devDependencies) {
+    if (p.package.devDependencies) 
+    {
       Object.entries(p.package.devDependencies).forEach(handler(true))
     }
   }
@@ -83,15 +91,18 @@ async function main() {
 
   const denyList = ['@zeit/ncc', 'prisma-datamodel']
 
-  if (argv['--auto-fix']) {
+  if (argv['--auto-fix']) 
+  {
     console.log('Auto fix turned on...')
     await pMap(
       Object.entries(packageCache),
       async ([packageName, packageUsers]) => {
-        if (denyList.includes(packageName)) {
+        if (denyList.includes(packageName))
+        {
           return
         }
-        if (!packageName.startsWith('@types')) {
+        if (!packageName.startsWith('@types'))
+        {
           return
         }
         const latestVersion = await runResult(
@@ -120,13 +131,16 @@ async function main() {
 main()
 
 async function runResult(cwd: string, cmd: string): Promise<string> {
-  try {
+  try
+  {
     const result = await execa.command(cmd, {
       cwd,
       stdio: 'pipe',
     })
     return result.stdout
-  } catch (e) {
+  } 
+  catch (e)
+  {
     throw new Error(
       chalk.bold.red(
         `Error running ${chalk.bold(cmd)} in ${chalk.underline(cwd)}:`,
@@ -135,14 +149,18 @@ async function runResult(cwd: string, cmd: string): Promise<string> {
   }
 }
 
-async function run(cwd: string, cmd: string): Promise<void> {
+async function run(cwd: string, cmd: string): Promise<void>
+{
   console.log(chalk.underline('./' + cwd).padEnd(20), chalk.bold(cmd))
-  try {
+  try 
+  {
     await execa.command(cmd, {
       cwd,
       stdio: 'inherit',
     })
-  } catch (e) {
+  } 
+  catch (e) 
+  {
     throw new Error(
       chalk.bold.red(
         `Error running ${chalk.bold(cmd)} in ${chalk.underline(cwd)}:`,
