@@ -1,4 +1,5 @@
-module.exports = {
+module.exports = 
+{
   preset: 'ts-jest',
   coverageReporters: ['clover'],
   coverageDirectory: 'src/__tests__/coverage',
