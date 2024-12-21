@@ -1,6 +1,7 @@
 {
   "private": true,
-  "scripts": {
+  "scripts": 
+  {
     "preinstall": "node ./scripts/only-allow-pnpm.js pnpm",
     "lint": "ts-node scripts/lint.ts",
     "bench": "ts-node scripts/bench.ts | tee output.txt",
@@ -8,7 +9,8 @@
     "eslint": "eslint",
     "prepare": "is-ci || husky install"
   },
-  "devDependencies": {
+  "devDependencies": 
+  {
     "@types/benchmark": "2.1.1",
     "@types/node": "14.17.5",
     "@typescript-eslint/eslint-plugin": "4.28.4",
