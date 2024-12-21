@@ -15,30 +15,35 @@ const getDirectories = async (path: string) => {
 }
 
 const getKeys = (obj: any, name) => {
-  if (obj && obj[name]) {
+  if (obj && obj[name])
+  {
     return Object.keys(obj[name]).filter((name) => name.includes('prisma'))
   }
   return []
 }
 function generateGraph(
-  packages: {
+  packages: 
+  {
     dirName: string
     path: string
     jsonPath: string
   }[],
-  type: 'dependencies' | 'devDependencies' | 'peerDependencies',
-) {
+  type: 'dependencies' | 'devDependencies' | 'peerDependencies') 
+{
   const g = digraph('G')
   g.set('splines', 'ortho')
   packages?.forEach((pkg) => {
-    try{
+    try
+    {
       const json = require(pkg.jsonPath)
       g.addNode(json.name, { shape: 'box' })
       const keys = getKeys(json, type)
       const depNodes = keys.map((key) => {
         g.addEdge(json.name, key, {})
       })
-    } catch {
+    } 
+    catch
+    {
       
     }
   })
@@ -46,7 +51,8 @@ function generateGraph(
     console.log(stderr)
   })
 }
-async function main() {
+async function main() 
+{
   const packages = await getDirectories('./packages')
   generateGraph(packages, 'dependencies')
   generateGraph(packages, 'devDependencies')
