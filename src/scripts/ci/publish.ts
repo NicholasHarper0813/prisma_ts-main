@@ -4,18 +4,18 @@ import { promisify } from 'util'
 import { cloneOrPull } from '../setup'
 import { unique } from './unique'
 import slugify from '@sindresorhus/slugify'
+import pMap from 'p-map'
+import pReduce from 'p-reduce'
+import pRetry from 'p-retry'
+import path from 'path'
 import arg from 'arg'
 import topo from 'batching-toposort'
 import chalk from 'chalk'
 import execa from 'execa'
 import globby from 'globby'
-import fetch from 'node-fetch'
-import pMap from 'p-map'
-import pReduce from 'p-reduce'
-import pRetry from 'p-retry'
-import path from 'path'
 import redis from 'redis'
 import semver from 'semver'
+import fetch from 'node-fetch'
 
 export type Commit = {
   date: Date
@@ -542,7 +542,6 @@ async function getAllVersions(
 
 async function getNextMinorStable(): Promise<string | null> {
   const remoteVersion = await runResult('.', `npm info prisma version`)
-
   return increaseMinor(remoteVersion)
 }
 
