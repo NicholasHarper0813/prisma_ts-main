@@ -2,10 +2,10 @@ import staged from 'staged-git-files'
 import globby from 'globby'
 import chalk from 'chalk'
 import execa from 'execa'
-import pMap from 'p-map'
-import path from 'path'
 import arg from 'arg'
 import os from 'os'
+import pMap from 'p-map'
+import path from 'path'
 
 async function main() 
 {
@@ -111,9 +111,10 @@ async function getStagedPackages(): Promise<string[]>
 {
   const files: Array<{ filename: string; status: string }> = await staged()
   return Object.keys(
-    files.reduce((acc, { filename }) => {
-      if (filename.startsWith('src/packages')) {
-        // "src/packages/".length === 13
+    files.reduce((acc, { filename }) => 
+    {
+      if (filename.startsWith('src/packages')) 
+      {
         let packageName = filename.slice(13)
         packageName = packageName.slice(0, packageName.indexOf('/'))
         if (!acc[packageName]) {
