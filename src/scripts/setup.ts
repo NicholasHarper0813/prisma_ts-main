@@ -1,10 +1,11 @@
 import execa from 'execa'
 import chalk from 'chalk'
-import fs from 'fs'
 import path from 'path'
 import pRetry from 'p-retry'
 import pMap from 'p-map'
-import {
+import fs from 'fs'
+import 
+{
   getPackages,
   getPublishOrder,
   getPackageDependencies,
@@ -68,7 +69,6 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
   if (!buildOnly)
   {
     console.debug(`Installing dependencies`)
-
     await run(
       '.',
       `pnpm i --no-prefer-frozen-lockfile --reporter=silent`,
@@ -76,7 +76,6 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
   }
 
   console.debug(`Building packages`)
-
   for (const batch of publishOrder)
   {
     await pMap(
@@ -89,7 +88,6 @@ has to point to the dev version you want to promote, for example 2.1.0-dev.123`)
         if (buildOnly) 
         {
           runPromise.catch(console.error)
-
           if (['@prisma/migrate', '@prisma/integration-tests'].includes(pkgName)) 
           {
             run(pkgDir, 'pnpm rebuild')
