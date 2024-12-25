@@ -1,6 +1,6 @@
 import execa from "execa";
-import globby from "globby";
 import path from "path";
+import globby from "globby";
 
 async function main() 
 {
