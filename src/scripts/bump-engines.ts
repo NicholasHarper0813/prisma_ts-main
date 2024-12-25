@@ -1,7 +1,7 @@
 import arg from 'arg'
 import chalk from 'chalk'
-import execa from 'execa'
 import path from 'path'
+import execa from 'execa'
 
 const argv = arg({})
 const usage = chalk`
@@ -28,7 +28,8 @@ async function main()
 
 main()
 
-async function run(cwd: string, cmd: string): Promise<void> {
+async function run(cwd: string, cmd: string): Promise<void> 
+{
   console.log(chalk.underline('./' + cwd).padEnd(20), chalk.bold(cmd))
   try 
   {
