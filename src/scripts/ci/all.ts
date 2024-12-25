@@ -37,7 +37,6 @@ async function all()
   }
 
   const command = argv.join(' ')
-
   console.log(
     chalk.cyanBright.bold(`prisma `.padEnd(10)) + chalk.bold(command) + '\n',
   )
