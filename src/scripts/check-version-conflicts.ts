@@ -1,12 +1,13 @@
 import globby from 'globby'
+import path from 'path'
+import chalk from 'chalk'
 import arg from 'arg'
 import pMap from 'p-map'
 import execa from 'execa'
-import path from 'path'
-import chalk from 'chalk'
 import { promises as fs } from 'fs'
 
-type PackageUser = {
+type PackageUser = 
+{
   path: string
   version: string
   dev: boolean
@@ -96,7 +97,8 @@ async function main()
     console.log('Auto fix turned on...')
     await pMap(
       Object.entries(packageCache),
-      async ([packageName, packageUsers]) => {
+      async ([packageName, packageUsers]) => 
+      {
         if (denyList.includes(packageName))
         {
           return
