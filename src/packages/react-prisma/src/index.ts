@@ -83,7 +83,8 @@ const queryOperations = {
   count: true,
 }
 
-export function PrismaClient(this, options): PrismaClientConstructor {
+export function PrismaClient(this, options): PrismaClientConstructor 
+{
   this.client = new PrismaClientConstructor(options)
   this.createRecordMap = function () 
   {
@@ -101,7 +102,8 @@ export function PrismaClient(this, options): PrismaClientConstructor {
     {
       const method = keys[i]
       delegate[method] = (query) => {
-        if (!queryOperations[method]) {
+        if (!queryOperations[method]) 
+        {
           throw new Error(`The mutation ${modelName}.${method} can't be used from \`react-prisma\`.
 Please use \`@prisma/client\` directly for that.`)
         }
